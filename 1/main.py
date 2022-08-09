@@ -9,7 +9,6 @@ import os
 
 # 参数
 
-epochs = 3
 batch_size_training = 64
 batch_size_testing = 1000
 momentum = 0.5
@@ -19,7 +18,11 @@ random_seed = 114514
 global_average = 0.1307
 standard_error = 0.3081
 
-DoTrain = input("Do training?(y/N)") == 'y'
+DoTrain = input("Do training?(y/N):") == 'y'
+if DoTrain:
+    epochs = int(input("Input training epochs:"))
+else:
+    epochs = 3
 
 model_state_dict_name = "model.pth"
 optimizer_state_dict_name = "optimizer.pth"
