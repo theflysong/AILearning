@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import network
 import torch.optim as optim
 import torch.nn.functional as F
+import os
 
 # 参数
 
@@ -17,6 +18,11 @@ log_freq = 10
 random_seed = 114514
 global_average = 0.1307
 standard_error = 0.3081
+
+DoTrain = input("Do training?(y/N)") == 'y'
+
+model_state_dict_name = "model.pth"
+optimizer_state_dict_name = "optimizer.pth"
 
 # 配置
 torch.manual_seed(random_seed)
@@ -46,6 +52,14 @@ loader_testing = DataLoader(
 net = network.Network()
 optimizer = optim.SGD(net.parameters(), lr=learning_rate, momentum=momentum)
 
+if os.path.exists(model_state_dict_name):
+    network_state_dict = torch.load(model_state_dict_name)
+    net.load_state_dict(network_state_dict)
+
+if os.path.exists(optimizer_state_dict_name):
+    optimizer_state_dict = torch.load(optimizer_state_dict_name)
+    optimizer.load_state_dict(optimizer_state_dict)
+
 # 训练
 train_losses = []
 train_counter = []
@@ -63,8 +77,8 @@ def doLog(epoch, index, data, loss):
     train_counter.append(
         (index * batch_size_training) + ((epoch - 1) * len(loader_training.dataset)))
 
-    torch.save(net.state_dict(), './model.pth')
-    torch.save(optimizer.state_dict(), './optimizer.pth')
+    torch.save(net.state_dict(), model_state_dict_name)
+    torch.save(optimizer.state_dict(), optimizer_state_dict_name)
 
 def train(epoch):
     net.train()
@@ -91,9 +105,28 @@ def test():
     test_losses.append(test_loss)
     print(f"Test set: Avg. loss: {test_loss:.4f}, Accuracy: {acc}/{len(loader_testing.dataset)} ({acc/len(loader_testing.dataset) * 100:.0f}%)\n")
 
+def doPred():
+    examples = enumerate(loader_testing)
+    index, (eg_data, eg_targets) = next(examples)
+    with torch.no_grad():
+        output = net(eg_data)
+    figure = plt.figure()
+    for i in range(6):
+        plt.subplot(2,3,i+1)
+        plt.tight_layout()
+        plt.imshow(eg_data[i][0], cmap='gray', interpolation='none')
+        plt.title("Prediction: {}".format(output.data.max(1, keepdim=True)[1][i].item()))
+        plt.xticks([])
+        plt.yticks([])
+    plt.show()
+
 test()
-for epoch in range(1, epochs + 1):
-    train(epoch)
-    test()
+doPred()
+
+if DoTrain:
+    for epoch in range(1, epochs + 1):
+        train(epoch)
+        test()
+        doPred()
 
 exit(0)
